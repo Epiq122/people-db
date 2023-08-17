@@ -37,7 +37,7 @@ public class PeopleRepositoryTests {
         repo = new PeopleRepository(connection);
     }
 
-    // try {// open connection } catch(Exception ex) {handle exception} finally { clean up or recover }
+
     @AfterEach
     void tearDown() throws SQLException {
         if (connection != null) {
@@ -48,7 +48,7 @@ public class PeopleRepositoryTests {
 
 
     @Test
-    public void canSaveOnePerson() throws SQLException {
+    public void canSaveOnePerson() {
 
         Person rob = new Person("Rob", "Gleason", ZonedDateTime.of(1986, 9, 11, 15, 15, 0, 0, ZoneId.systemDefault()));
         Person savedPerson = repo.save(rob);

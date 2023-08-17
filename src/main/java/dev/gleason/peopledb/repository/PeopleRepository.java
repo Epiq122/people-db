@@ -1,5 +1,6 @@
 package dev.gleason.peopledb.repository;
 
+import dev.gleason.peopledb.exception.UnableToSaveException;
 import dev.gleason.peopledb.model.Person;
 
 import java.sql.*;
@@ -13,7 +14,7 @@ public class PeopleRepository {
         this.connection = connection;
     }
 
-    public Person save(Person person) {
+    public Person save(Person person) throws UnableToSaveException {
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(SAVE_PERSON_SQL, Statement.RETURN_GENERATED_KEYS);
             //these are biding to the sql statement
@@ -31,7 +32,8 @@ public class PeopleRepository {
             }
             System.out.printf("Records affected: %d%n", recordsAffected);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            throw new UnableToSaveException("Tried to save person : " + person);
         }
 
         return person;
