@@ -17,8 +17,17 @@ public class PeopleRepositoryTests {
     private Connection connection;
 
     @BeforeEach
-    void setUp() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/people_data_base");
+    void setUp() {
+        String jdbcUrl = "jdbc:mysql://localhost:3306/people_data_base";
+        String username = "root";
+        String password = "nope1016789";
+
+        try {
+            connection = DriverManager.getConnection(jdbcUrl, username, password);
+            System.out.println("Connected to the database!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
