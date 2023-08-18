@@ -8,8 +8,11 @@ import java.sql.*;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+
+import static java.util.stream.Collectors.joining;
 
 
 public class PeopleRepository {
@@ -121,8 +124,13 @@ public class PeopleRepository {
     }
 
     public void delete(Person... people) {
-        for (Person person : people) {
-            delete(person);
+        try {
+            Statement statement = connection.createStatement();
+            String ids = Arrays.stream(people).map(Person::getId).map(String::valueOf).collect(joining(","));
+            int affectedRecordCount = statement.executeUpdate("DELETE FROM PEOPLE WHERE ID IN (:ids)".replace(":ids", ids));
+            System.out.println(affectedRecordCount);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 }
