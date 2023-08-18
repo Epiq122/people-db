@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -132,6 +133,23 @@ public class PeopleRepositoryTests {
         repo.delete(p1, p2);
         long endCount = repo.count();
         assertThat(endCount).isEqualTo(startCount - 2);
+
+    }
+
+
+    @Test
+    public void canUpdate() {
+        Person savedPerson = repo.save(new Person("Lazerao", "Jackson", ZonedDateTime.of(1980, 11, 15, 15, 15, 0, 0, ZoneId.of("-6"))));
+
+        Person person1 = repo.findById(savedPerson.getId()).get(); // 0
+
+        savedPerson.setSalary(new BigDecimal("42312.69"));
+        repo.update(savedPerson);
+
+        Person person2 = repo.findById(savedPerson.getId()).get(); // 42312.69
+
+        assertThat(person2.getSalary()).isNotEqualTo(person1.getSalary());
+
 
     }
 

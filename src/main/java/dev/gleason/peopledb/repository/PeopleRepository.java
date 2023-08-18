@@ -17,7 +17,7 @@ import static java.util.stream.Collectors.joining;
 
 public class PeopleRepository {
     public static final String SAVE_PERSON_SQL = "INSERT INTO PEOPLE (FIRST_NAME,LAST_NAME,DOB) VALUES(?,?,?)";
-    public static final String FIND_BY_ID_SQL = "SELECT ID,FIRST_NAME,LAST_NAME,DOB FROM PEOPLE WHERE ID = ?";
+    public static final String FIND_BY_ID_SQL = "SELECT ID,FIRST_NAME,LAST_NAME,DOB,SALARY FROM PEOPLE WHERE ID = ?";
     public static final String SELECT_COUNT_SQL = "SELECT COUNT(*) FROM PEOPLE";
     public static final String FIND_ALL_SQL = "SELECT ID, FIRST_NAME, LAST_NAME, DOB, SALARY FROM PEOPLE";
     public static final String DELETE_SQL = "DELETE FROM PEOPLE WHERE ID=?";
@@ -132,5 +132,21 @@ public class PeopleRepository {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void update(Person person) {
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement("UPDATE PEOPLE SET FIRST_NAME = ?, LAST_NAME = ?, DOB = ?, SALARY = ? WHERE ID = ?");
+            preparedStatement.setString(1, person.getFirstName());
+            preparedStatement.setString(2, person.getLastName());
+            preparedStatement.setTimestamp(3, Timestamp.from(person.getDateOfBirth().toInstant()));
+            preparedStatement.setBigDecimal(4, person.getSalary());
+            preparedStatement.setLong(5, person.getId());
+            preparedStatement.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }
