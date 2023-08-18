@@ -4,6 +4,8 @@ import dev.gleason.peopledb.exception.UnableToSaveException;
 import dev.gleason.peopledb.model.Person;
 
 import java.sql.*;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 
 public class PeopleRepository {
@@ -20,9 +22,8 @@ public class PeopleRepository {
             //these are biding to the sql statement
             preparedStatement.setString(1, person.getFirstName());
             preparedStatement.setString(2, person.getLastName());
-//            preparedStatement.setTimestamp(3,
-//                    Timestamp.valueOf(person.getDateOfBirth().withZoneSameInstant(ZoneId.of("+0")).toLocalDateTime()));
-            preparedStatement.setTimestamp(3, Timestamp.from(person.getDateOfBirth().toInstant()));
+            ZonedDateTime nowWithTimeZone = ZonedDateTime.now(ZoneId.systemDefault());
+            preparedStatement.setTimestamp(3, Timestamp.from(nowWithTimeZone.toInstant()));
             int recordsAffected = preparedStatement.executeUpdate();
             ResultSet resultSet = preparedStatement.getGeneratedKeys();
             while (resultSet.next()) {
@@ -37,5 +38,24 @@ public class PeopleRepository {
         }
 
         return person;
+    }
+
+    public Person findById(Long id) {
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM PEOPLE WHERE ID = ?");
+            preparedStatement.setLong(1, id);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                String firstName = resultSet.getString("FIRST_NAME");
+                String lastName = resultSet.getString("LAST_NAME");
+                ZonedDateTime dateOfBirth = ZonedDateTime.ofInstant(resultSet.getTimestamp("DOB").toInstant(), ZoneId.systemDefault());
+                Person person = new Person(firstName, lastName, dateOfBirth);
+                person.setId(resultSet.getLong("ID"));
+                return person;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 }
