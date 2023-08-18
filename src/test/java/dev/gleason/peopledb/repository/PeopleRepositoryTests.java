@@ -115,6 +115,20 @@ public class PeopleRepositoryTests {
 
     @Test
     public void canDelete() {
+        Person savedPerson = repo.save(new Person("Lazerao", "Jackson", ZonedDateTime.of(1980, 11, 15, 15, 15, 0, 0, ZoneId.of("-6"))));
+        long startCount = repo.count();
+        repo.delete(savedPerson);
+        long endCount = repo.count();
+        assertThat(endCount).isEqualTo(startCount - 1);
+
+    }
+
+    @Test
+    public void canDeleteMultiplePeople() {
+        Person savedPerson1 = repo.save(new Person("Lazerao", "Jackson", ZonedDateTime.of(1980, 11, 15, 15, 15, 0, 0, ZoneId.of("-6"))));
+        Person savedPerson2 = repo.save(new Person("Lazerao", "Jackson", ZonedDateTime.of(1980, 11, 15, 15, 15, 0, 0, ZoneId.of("-6"))));
+
+        repo.delete(savedPerson1, savedPerson2);
 
     }
 

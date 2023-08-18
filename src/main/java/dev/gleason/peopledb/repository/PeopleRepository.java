@@ -17,6 +17,7 @@ public class PeopleRepository {
     public static final String FIND_BY_ID_SQL = "SELECT ID,FIRST_NAME,LAST_NAME,DOB FROM PEOPLE WHERE ID = ?";
     public static final String SELECT_COUNT_SQL = "SELECT COUNT(*) FROM PEOPLE";
     public static final String FIND_ALL_SQL = "SELECT ID, FIRST_NAME, LAST_NAME, DOB, SALARY FROM PEOPLE";
+    public static final String DELETE_SQL = "DELETE FROM PEOPLE WHERE ID=?";
     private Connection connection;
 
     public PeopleRepository(Connection connection) {
@@ -106,5 +107,22 @@ public class PeopleRepository {
             e.printStackTrace();
         }
         return count;
+    }
+
+    public void delete(Person savedPerson) {
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
+            preparedStatement.setLong(1, savedPerson.getId());
+            int recordsAffected = preparedStatement.executeUpdate();
+            System.out.printf("Records affected: %d%n", recordsAffected);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void delete(Person... people) {
+        for (Person person : people) {
+            delete(person);
+        }
     }
 }
