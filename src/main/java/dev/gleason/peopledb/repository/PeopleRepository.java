@@ -1,6 +1,5 @@
 package dev.gleason.peopledb.repository;
 
-import dev.gleason.peopledb.exception.UnableToSaveException;
 import dev.gleason.peopledb.model.Person;
 
 import java.math.BigDecimal;
@@ -11,67 +10,61 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-
-import static java.util.stream.Collectors.joining;
+import java.util.stream.Collectors;
 
 
 public class PeopleRepository {
-    public static final String SAVE_PERSON_SQL = "INSERT INTO PEOPLE (FIRST_NAME,LAST_NAME,DOB) VALUES(?,?,?)";
-    public static final String FIND_BY_ID_SQL = "SELECT ID,FIRST_NAME,LAST_NAME,DOB,SALARY FROM PEOPLE WHERE ID = ?";
+    private static final String INSERT_PERSON_SQL = "INSERT INTO PEOPLE (FIRST_NAME, LAST_NAME, DOB) VALUES (?, ?, ?)";
+    public static final String FIND_BY_ID_SQL = "SELECT ID, FIRST_NAME, LAST_NAME, DOB, SALARY FROM PEOPLE WHERE ID = ?";
     public static final String SELECT_COUNT_SQL = "SELECT COUNT(*) FROM PEOPLE";
     public static final String FIND_ALL_SQL = "SELECT ID, FIRST_NAME, LAST_NAME, DOB, SALARY FROM PEOPLE";
-    public static final String DELETE_SQL = "DELETE FROM PEOPLE WHERE ID=?";
     private Connection connection;
+    private PreparedStatement ps;
+
 
     public PeopleRepository(Connection connection) {
         this.connection = connection;
     }
 
-    public Person save(Person person) throws UnableToSaveException {
+    public Person save(Person person) {
         try {
-            PreparedStatement preparedStatement = connection.prepareStatement(SAVE_PERSON_SQL, Statement.RETURN_GENERATED_KEYS);
-            //these are biding to the sql statement
-            preparedStatement.setString(1, person.getFirstName());
-            preparedStatement.setString(2, person.getLastName());
-            ZonedDateTime nowWithTimeZone = ZonedDateTime.now(ZoneId.systemDefault());
-            preparedStatement.setTimestamp(3, Timestamp.from(nowWithTimeZone.toInstant()));
-            int recordsAffected = preparedStatement.executeUpdate();
-            ResultSet resultSet = preparedStatement.getGeneratedKeys();
-            while (resultSet.next()) {
-                long id = resultSet.getLong(1);
-                person.setId(id);
-                System.out.println(person);
-            }
-            System.out.printf("Records affected: %d%n", recordsAffected);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new UnableToSaveException("Tried to save person : " + person);
-        }
+            PreparedStatement ps = connection.prepareStatement(INSERT_PERSON_SQL, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, person.getFirstName());
+            ps.setString(2, person.getLastName());
+            ps.setTimestamp(3, convertDobToTimestamp(person.getDateOfBirth()));
+            int recordsSaved = ps.executeUpdate();
+            ResultSet rs = ps.getGeneratedKeys();
 
+            while (rs.next()) {
+                long id = rs.getLong(1);
+                person.setId(id);
+            }
+            System.out.printf("Records Saved: %d%n", recordsSaved);
+            System.out.println(person);
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         return person;
     }
 
     public Optional<Person> findById(Long id) {
         Person person = null;
+
         try {
-            PreparedStatement preparedStatement = connection.prepareStatement(FIND_BY_ID_SQL);
-            preparedStatement.setLong(1, id);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            while (resultSet.next()) {
-                long personId = resultSet.getLong("ID");
-                String firstName = resultSet.getString("FIRST_NAME");
-                String lastName = resultSet.getString("LAST_NAME");
-                Timestamp dob = resultSet.getTimestamp("DOB");
-                ZonedDateTime zonedDateTime = dob.toInstant().atZone(ZoneId.systemDefault());
-                person = new Person(firstName, lastName, zonedDateTime);
-                person.setId(personId);
+            PreparedStatement ps = connection.prepareStatement(FIND_BY_ID_SQL);
+            ps.setLong(1, id);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                person = extractPersonFromResultSet(rs);
             }
+
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
         return Optional.ofNullable(person);
     }
-
 
     public List<Person> findAll() {
         List<Person> people = new ArrayList<>();
@@ -112,41 +105,57 @@ public class PeopleRepository {
         return count;
     }
 
-    public void delete(Person savedPerson) {
+    public void delete(Person person) {
         try {
-            PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-            preparedStatement.setLong(1, savedPerson.getId());
-            int recordsAffected = preparedStatement.executeUpdate();
-            System.out.printf("Records affected: %d%n", recordsAffected);
+            PreparedStatement ps = connection.prepareStatement("DELETE FROM PEOPLE WHERE ID = ?");
+            ps.setLong(1, person.getId());
+            int deletedRecordCount = ps.executeUpdate();
+            System.out.printf("Deleted Records: %s%n", deletedRecordCount);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
 
+//    public void delete(Person...people) {  // Person[] people
+//
+//        for (Person person : people) {  // people is an array of Person Object
+//            delete(people);
+//        }
+//    }
+
     public void delete(Person... people) {
         try {
-            Statement statement = connection.createStatement();
-            String ids = Arrays.stream(people).map(Person::getId).map(String::valueOf).collect(joining(","));
-            int affectedRecordCount = statement.executeUpdate("DELETE FROM PEOPLE WHERE ID IN (:ids)".replace(":ids", ids));
-            System.out.println(affectedRecordCount);
+            Statement stmt = connection.createStatement();
+            String ids = Arrays.
+                    stream(people)
+                    .map(Person::getId)
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+            int deletedRecordsCount = stmt.executeUpdate("DELETE FROM PEOPLE WHERE ID IN (:ids)".replace(":ids", ids));
+            System.out.println("Deleted Records: " + deletedRecordsCount);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
 
     public void update(Person person) {
         try {
-            PreparedStatement preparedStatement = connection.prepareStatement("UPDATE PEOPLE SET FIRST_NAME = ?, LAST_NAME = ?, DOB = ?, SALARY = ? WHERE ID = ?");
-            preparedStatement.setString(1, person.getFirstName());
-            preparedStatement.setString(2, person.getLastName());
-            preparedStatement.setTimestamp(3, Timestamp.from(person.getDateOfBirth().toInstant()));
-            preparedStatement.setBigDecimal(4, person.getSalary());
-            preparedStatement.setLong(5, person.getId());
-            preparedStatement.executeUpdate();
+            PreparedStatement ps = connection.prepareStatement("UPDATE PEOPLE SET FIRST_NAME = ?, LAST_NAME = ?, DOB = ?, SALARY = ? WHERE ID = ?");
+            ps.setString(1, person.getFirstName());
+            ps.setString(2, person.getLastName());
+            ps.setTimestamp(3, convertDobToTimestamp(person.getDateOfBirth()));
+            ps.setBigDecimal(4, person.getSalary());
+            ps.setLong(5, person.getId());
+            ps.executeUpdate();
 
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
+    }
 
+    private static Timestamp convertDobToTimestamp(ZonedDateTime dob) {
+        return Timestamp.valueOf(dob.withZoneSameInstant(ZoneId.of("+0")).toLocalDateTime());
     }
 }
+
+
