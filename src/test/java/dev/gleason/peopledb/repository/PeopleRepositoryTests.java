@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
@@ -71,9 +72,16 @@ public class PeopleRepositoryTests {
     @Test
     public void canFindPersonById() {
         Person savedPerson = repo.save(new Person("Larry", "Kwan", ZonedDateTime.now()));
-        Person foundPerson = repo.findById(savedPerson.getId());
+        Person foundPerson = repo.findById(savedPerson.getId()).get();
         assertThat(foundPerson.getDateOfBirth()).isCloseTo(savedPerson.getDateOfBirth(), within(1, ChronoUnit.SECONDS));
 
+
+    }
+
+    @Test
+    public void testPersonIdNotFound() {
+        Optional<Person> foundPerson = repo.findById(-1L);
+        assertThat(foundPerson).isEmpty();
 
     }
 
