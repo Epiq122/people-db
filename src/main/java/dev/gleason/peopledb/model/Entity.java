@@ -1,2 +1,7 @@
-package dev.gleason.peopledb.model;public interface Entity {
+package dev.gleason.peopledb.model;
+
+public interface Entity {
+    Long getId();
+
+    void setId(Long id);
 }

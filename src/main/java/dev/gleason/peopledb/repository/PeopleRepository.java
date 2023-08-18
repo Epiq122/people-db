@@ -9,78 +9,36 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 
-public class PeopleRepository {
+public class PeopleRepository extends CRUDRepository<Person> {
     private static final String INSERT_PERSON_SQL = "INSERT INTO PEOPLE (FIRST_NAME, LAST_NAME, DOB) VALUES (?, ?, ?)";
     public static final String FIND_BY_ID_SQL = "SELECT ID, FIRST_NAME, LAST_NAME, DOB, SALARY FROM PEOPLE WHERE ID = ?";
     public static final String SELECT_COUNT_SQL = "SELECT COUNT(*) FROM PEOPLE";
     public static final String FIND_ALL_SQL = "SELECT ID, FIRST_NAME, LAST_NAME, DOB, SALARY FROM PEOPLE";
-    private Connection connection;
     private PreparedStatement ps;
 
 
     public PeopleRepository(Connection connection) {
-        this.connection = connection;
+        super(connection);
+
     }
 
-    public Person save(Person person) {
-        try {
-            PreparedStatement ps = connection.prepareStatement(INSERT_PERSON_SQL, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, person.getFirstName());
-            ps.setString(2, person.getLastName());
-            ps.setTimestamp(3, convertDobToTimestamp(person.getDateOfBirth()));
-            int recordsSaved = ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
-
-            while (rs.next()) {
-                long id = rs.getLong(1);
-                person.setId(id);
-            }
-            System.out.printf("Records Saved: %d%n", recordsSaved);
-            System.out.println(person);
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return person;
+    @Override
+    String getSaveSql() {
+        return INSERT_PERSON_SQL;
     }
 
-    public Optional<Person> findById(Long id) {
-        Person person = null;
-
-        try {
-            PreparedStatement ps = connection.prepareStatement(FIND_BY_ID_SQL);
-            ps.setLong(1, id);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                person = extractPersonFromResultSet(rs);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return Optional.ofNullable(person);
+    @Override
+    void mapForSave(Person entity, PreparedStatement ps) throws SQLException {
+        ps.setString(1, entity.getFirstName());
+        ps.setString(2, entity.getLastName());
+        ps.setTimestamp(3, convertDobToTimestamp(entity.getDateOfBirth()));
     }
 
-    public List<Person> findAll() {
-        List<Person> people = new ArrayList<>();
-        try {
-            PreparedStatement ps = connection.prepareStatement(FIND_ALL_SQL);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                people.add(extractPersonFromResultSet(rs));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return people;
-    }
-
-    private static Person extractPersonFromResultSet(ResultSet rs) throws SQLException {
+    @Override
+    Person extractEntityFromResultSet(ResultSet rs) throws SQLException {
         long personId = rs.getLong("ID");
         String firstName = rs.getString("FIRST_NAME");
         String lastName = rs.getString("LAST_NAME");
@@ -88,6 +46,27 @@ public class PeopleRepository {
         BigDecimal salary = rs.getBigDecimal("SALARY");
         return new Person(personId, firstName, lastName, dob, salary);
     }
+
+    @Override
+    String getFindBySql() {
+        return FIND_BY_ID_SQL;
+    }
+
+
+    public List<Person> findAll() {
+        List<Person> people = new ArrayList<>();
+        try {
+            PreparedStatement ps = connection.prepareStatement(FIND_ALL_SQL);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                people.add(extractEntityFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return people;
+    }
+
 
     public long count() {
         long count = 0;
@@ -116,12 +95,6 @@ public class PeopleRepository {
         }
     }
 
-//    public void delete(Person...people) {  // Person[] people
-//
-//        for (Person person : people) {  // people is an array of Person Object
-//            delete(people);
-//        }
-//    }
 
     public void delete(Person... people) {
         try {

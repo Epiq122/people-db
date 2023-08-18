@@ -1,12 +1,13 @@
 package dev.gleason.peopledb.model;
 
+
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
-public class Person {
+public class Person implements Entity {
     private Long id;
     private String firstName;
     private String lastName;
@@ -30,10 +31,12 @@ public class Person {
         this.id = id;
     }
 
+    @Override
     public Long getId() {
         return id;
     }
 
+    @Override
     public void setId(Long id) {
         this.id = id;
     }
