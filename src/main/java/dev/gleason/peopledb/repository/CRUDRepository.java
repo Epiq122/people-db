@@ -1,5 +1,6 @@
 package dev.gleason.peopledb.repository;
 
+import dev.gleason.peopledb.annotation.SQL;
 import dev.gleason.peopledb.model.Entity;
 
 import java.sql.*;
@@ -15,6 +16,12 @@ abstract class CRUDRepository<T extends Entity> {
     public CRUDRepository(Connection connection) {
         this.connection = connection;
     }
+
+    // annotation
+    private String getSaveSqlByAnnotation() {
+        this.getClass().getAnnotation(SQL.class).value();
+    }
+
 
     public T save(T entity) {
         try {

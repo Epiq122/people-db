@@ -1,5 +1,6 @@
 package dev.gleason.peopledb.repository;
 
+import dev.gleason.peopledb.annotation.SQL;
 import dev.gleason.peopledb.model.Person;
 
 import java.math.BigDecimal;
@@ -29,6 +30,7 @@ public class PeopleRepository extends CRUDRepository<Person> {
     }
 
     @Override
+    @SQL(INSERT_PERSON_SQL)
     void mapForSave(Person entity, PreparedStatement ps) throws SQLException {
         ps.setString(1, entity.getFirstName());
         ps.setString(2, entity.getLastName());
